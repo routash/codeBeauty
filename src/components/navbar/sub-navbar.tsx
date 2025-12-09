@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import {
   NavigationMenu,
@@ -9,63 +10,76 @@ import {
   NavigationMenuLink,
 } from "../ui/navigation-menu";
 import Link from "next/link";
-import { category } from "@/utils/consitants/consitaint";
 
-export function SubNavbar() {
+export function SubNavbar(props: any) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+console.log(props.data.data)
+  // Extract categories + subcategories from API
+  const categories = props.data.data.categories;
+  const subcategories = props.data.data.subcategories;
 
+  // Merge subcategories inside categories
+  const mergedCategories = categories.map((cat: any) => ({
+    ...cat,
+    subcategories: subcategories.filter(
+      (sub: any) => sub.category_id === cat.id
+    ),
+  }));
+// console.log(mergedCategories)
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30); // 30px scroll par sticky start
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handleScroll);
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <>
+      {/* Navbar wrapper */}
       <div
-        className={`
-          fixed 
-          ${isScrolled ? "top-[5px]" : "top-[55px]"} 
-          left-0 right-0 z-40
-          transition-all duration-300 ease-in-out
-          ${isScrolled 
-            ? "bg-white shadow-md border-b border-purple-200/40" 
-            : "bg-white/70 backdrop-blur-md shadow-sm"
-          }
-        `}
+        className={`fixed left-0 right-0 z-40 transition-all duration-1500 
+        ${isScrolled ? "top-[5px] bg-white shadow-lg border-b" : "top-[55px] bg-white/70 backdrop-blur-md"}
+      `}
       >
-        <nav
-          className="w-full px-3 sm:px-4 lg:px-6 flex justify-center"
-          aria-label="Main navigation"
-        >
+        {/* Mobile Toggle */}
+        <div className="lg:hidden flex justify-between items-center px-4 py-2">
+          <h2 className="font-semibold text-lg">Categories</h2>
+
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-2 rounded-md border bg-white shadow-sm"
+          >
+            {mobileOpen ? "✕" : "☰"}
+          </button>
+        </div>
+
+        {/* Desktop Menu */}
+        <nav className="hidden lg:flex justify-center px-4 py-1">
           <NavigationMenu viewport={false}>
-            <NavigationMenuList className="flex-wrap justify-center gap-0 py-1">
-              {category.slice(0, 12).map((item) => (
-                <NavigationMenuItem key={item.name}>
-                  <NavigationMenuTrigger className="rounded-lg px-2 py-0.5 text-sm">
-                    <Link href={item.href || ""}>{item.name}</Link>
+            <NavigationMenuList className="flex gap-0 flex-wrap justify-center">
+              {mergedCategories.map((cat: any) => (
+                <NavigationMenuItem key={cat.id}>
+                  <NavigationMenuTrigger className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-purple-100 transition">
+                    {cat.name}
                   </NavigationMenuTrigger>
 
-                  <NavigationMenuContent className="rounded-2xl border border-purple-100/50 shadow-xl bg-white">
+                  <NavigationMenuContent className="rounded-2xl border border-purple-200 shadow-2xl bg-white">
                     <div
-                      className={`${
-                        item.subcategories.length >= 7 ? "w-[26rem]" : "w-60"
-                      } py-1`}
+                      className={`py-2 ${
+                        cat.subcategories.length >= 7 ? "w-[26rem]" : "w-60"
+                      }`}
                     >
                       <div
-                        className={`grid gap-0.5 ${
-                          item.subcategories.length >= 7
+                        className={`grid gap-1 ${
+                          cat.subcategories.length >= 7
                             ? "grid-cols-2"
                             : "grid-cols-1"
                         }`}
                       >
-                        {item.subcategories.map((sub) => (
-                          <NavigationMenuLink asChild key={sub.name}>
+                        {cat.subcategories.map((sub: any) => (
+                          <NavigationMenuLink asChild key={sub.id}>
                             <Link
-                              href={`/${sub.to}`}
+                              href={`/${sub.route}`}
                               className="px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all font-medium text-xs rounded-md"
                             >
                               {sub.name}
@@ -80,7 +94,51 @@ export function SubNavbar() {
             </NavigationMenuList>
           </NavigationMenu>
         </nav>
+
+        {/* Mobile Menu */}
+        {mobileOpen && (
+          <div className="lg:hidden px-4 pb-3 bg-white border-t shadow-md animate-slideDown">
+            {mergedCategories.map((cat: any) => (
+              <div key={cat.id} className="mb-2">
+                <details className="group">
+                  <summary className="cursor-pointer py-2 px-2 bg-gray-100 rounded-md font-medium flex justify-between items-center">
+                    {cat.name}
+                    <span className="text-sm">▼</span>
+                  </summary>
+
+                  <div className="mt-1 pl-3 space-y-1">
+                    {cat.subcategories.map((sub: any) => (
+                      <Link
+                        key={sub.id}
+                        href={`/${sub.route}`}
+                        className="block px-2 py-1 text-sm text-gray-700 rounded hover:bg-purple-50"
+                      >
+                        {sub.name}
+                      </Link>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .animate-slideDown {
+          animation: slideDown 0.25s ease-out;
+        }
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </>
   );
 }

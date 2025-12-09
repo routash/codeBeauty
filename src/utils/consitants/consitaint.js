@@ -524,6 +524,7 @@ export const category = [
       { name: 'Crontab Format', to: 'Utility/crontab-format' }
     ]
   },
+];
   // {
   //   name: 'Chart Tools', href: '/chart-tools',
   //   subcategories: [
@@ -863,7 +864,7 @@ export const category = [
   //   ]
   // },
   // ... (the rest categories like Converters, JSON Converters, XML Converters, HTML Converters, YAML Converters, Utility, Chart Tools, Viewers, Programming Editors, Parsers, CSS Tools, Escape Unescape, CryptoGraphy Tools, Beautifiers, etc. remain unchanged from your list — just ensure no duplicates)
-];
+// ];
 
 // export const category = [
 

@@ -1,8 +1,10 @@
-export default function ToolPage() {
+import { HtmlConverters } from "@/components/sections/html-converters";
+
+export default function htmlconvertersPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Dynamic Tool Page</h1>
-      <p>This is a dynamic tool page for html-converters.</p>
-    </div>
+    <HtmlConverters />
+    
   );
 }
+
+

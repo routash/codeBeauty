@@ -17,15 +17,14 @@ const titleToSlug = (title: string): string => {
     .replace(/^-|-$/g, '');         // Remove leading/trailing dashes
 };
 
-export function Popular() {
+export function Popular({ data }: { data: any }) {
   const [selected, setSelected] = useState<string | null>(null);
   const router = useRouter();
 
   // Click handler for navigation
-  const handleToolClick = (toolTitle: string) => {
-    const slug = titleToSlug(toolTitle);
+  const handleToolClick = (toolUrl: string) => {
     // Navigate to tool page
-    router.push(`/${slug}`);
+    router.push(`/${toolUrl}`);
     
     // Alternative: Open in new tab
     // window.open(`/${slug}`, '_blank');
@@ -42,13 +41,13 @@ export function Popular() {
 
         {/* Grid layout - 5 per row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {constants.tools.map((tool, index) => {
+          {data.data.map((tool: any, index: number) => {
             const isActive = selected === tool.title;
             return (
               <button
                 key={index}
-                onClick={() => handleToolClick(tool.title)}
-                onMouseEnter={() => setSelected(tool.title)}
+                onClick={() => handleToolClick(tool.url)}
+                onMouseEnter={() => setSelected(tool.name)}
                 onMouseLeave={() => setSelected(null)}
                 className={`relative p-5 text-base font-semibold rounded-2xl border cursor-pointer transition-all duration-300 ease-in-out transform
                   ${
@@ -64,7 +63,7 @@ export function Popular() {
                 )}
 
                 {/* Card Title */}
-                <span className="relative z-10 block truncate">{tool.title}</span>
+                <span className="relative z-10 block truncate">{tool.name}</span>
 
                 {/* Subtle hover highlight line */}
                 <span

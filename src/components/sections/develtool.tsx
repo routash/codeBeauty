@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { Heading } from "../ui/heading";
 import { ToolCard } from "../ui/toolcard";
-import { constants } from "@/utils/consitants/consitaint";
+import { useRouter } from "next/navigation";
 
-export function DevelTool() {
+export function DevelTool(data : any) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
+const route = useRouter();
   return (
     <section className="relative py-12 px-6 bg-gradient-to-br from-[#f0f4ff] via-[#fdf2ff] to-[#f0fff4] rounded-3xl shadow-md overflow-hidden">
       {/* Optional decorative background */}
@@ -16,13 +16,13 @@ export function DevelTool() {
         <Heading title="Developer Tools" align="left" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-6">
-          {constants.developmentTools.map((tool, index) => (
+          {data.data.data.map((tool : any, index : number) => (
             <ToolCard
               key={index}
-              title={tool.title}
+              title={tool.name}
               variant={tool.variant as "primary" | "default"}
-              isActive={activeIndex === index} // ✅ Active button
-              onClick={() => setActiveIndex(index)}
+              isActive={activeIndex === index} 
+              onClick={() =>{ setActiveIndex(index); route.push(tool.url) }}
             />
           ))}
         </div>

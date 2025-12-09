@@ -1,5 +1,6 @@
 import { BackgroundRemover } from "@/components/sections/background-remover";
 
 export default function Page() {
-  return <BackgroundRemover />;
+  // return <BackgroundRemover />;
+  return <div>Hello</div>;
 }

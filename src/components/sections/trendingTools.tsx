@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { Heading } from "../ui/heading";
 import { ToolCard } from "../ui/toolcard";
-import { constants } from "@/utils/consitants/consitaint";
+import { useRouter } from "next/navigation";
 
-export function TrendingTools() {
+export function TrendingTools({ data }: { data: any }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
+  const router = useRouter();
+console.log(data);
   return (
     <section className="relative py-12 px-6 rounded-3xl overflow-hidden bg-gradient-to-br from-[#eef5ff] via-[#fdf2ff] to-[#e8f9f3] shadow-xl">
       {/* Background blur + glow effect */}
@@ -19,18 +20,20 @@ export function TrendingTools() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {constants.trendingTools.map((tool, index) => (
+          {data.data.map((tool: any, index: number) => (
             <ToolCard
               key={index}
-              title={tool.title}
+              title={tool.name}
               variant={tool.variant as "primary" | "default"}
               isActive={activeIndex === index}
-              onClick={() =>
-                setActiveIndex(activeIndex === index ? null : index)
-              }
+              onClick={() => {
+                setActiveIndex(activeIndex === index ? null : index);
+                router.push(`/${tool.url}`);
+              }}
             />
           ))}
         </div>
+
       </div>
     </section>
   );

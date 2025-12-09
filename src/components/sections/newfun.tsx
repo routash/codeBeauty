@@ -3,10 +3,11 @@ import { useState } from "react";
 import { constants } from "@/utils/consitants/consitaint";
 import { Heading } from "../ui/heading";
 import { ToolCard } from "../ui/toolcard";
+import { useRouter } from "next/navigation";
 
-export function NewFun() {
+export function NewFun(data: any) {
   const [selected, setSelected] = useState<string | null>(null);
-
+  const route = useRouter();
   return (
     <section
       className="
@@ -27,7 +28,7 @@ export function NewFun() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {constants.newFundata.map((tool, index) => (
+          {data.data.data.map((tool: any, index: number) => (
             <div
               key={index}
               className="
@@ -45,11 +46,13 @@ export function NewFun() {
               ></div>
 
               <ToolCard
-                title={tool.title}
+                title={tool.name}
                 variant={(tool.variant as "default" | "primary") ?? "default"}
-                isActive={selected === tool.title}
-                onClick={() =>
-                  setSelected(selected === tool.title ? null : tool.title)
+                isActive={selected === tool.name}
+                onClick={() => {
+                  setSelected(selected === tool.title ? null : tool.title);
+                  route.push(tool.url)
+                }
                 }
               />
             </div>

@@ -75,8 +75,8 @@ const convertSqlData = (type: string, input: string) => {
     </thead>
     <tbody>
       ${rows
-        .map(r => `<tr>${headers.map(h => `<td>${r[h] || ''}</td>`).join("")}</tr>`)
-        .join("\n      ")}
+            .map(r => `<tr>${headers.map(h => `<td>${r[h] || ''}</td>`).join("")}</tr>`)
+            .join("\n      ")}
     </tbody>
   </table>
 </body>
@@ -250,21 +250,21 @@ export function SqlConverter({ defaultConverter = "" }: SqlConverterProps) {
           </div>
 
           <div className="mt-6 flex gap-2">
-            <Button 
+            <Button
               onClick={handleConvert}
               disabled={!selectedConverter || !inputValue.trim()}
             >
               Convert
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleClear}
               disabled={!inputValue && !output}
             >
               Clear
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={handleDownload}
               disabled={!output || output.includes("Please") || output.includes("Error")}
             >
