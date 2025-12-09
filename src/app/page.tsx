@@ -6,11 +6,22 @@ import WelcomePage from "@/components/ui/welcome-Page";
 import { ssr } from "@/utils/consitants/api";
 
 export default async function Home() {
-  const sb = await ssr.getSn();
-  const tt = await ssr.getTT();
-  const popular = await ssr.getPopular();
-  // const nf = await ssr.getNf();
-  const dp = await ssr.getDp();
+  const safeFetch = async <T,>(fetcher: () => Promise<T>, fallback: T, label: string): Promise<T> => {
+    try {
+      return await fetcher();
+    } catch (error) {
+      console.error(`Failed to load ${label}`, error);
+      return fallback;
+    }
+  };
+
+  const [sb, tt, popular, dp] = await Promise.all([
+    safeFetch(ssr.getSn, { data: { categories: [], subcategories: [] } }, "sub-categories"),
+    safeFetch(ssr.getTT, { data: [] }, "trending tools"),
+    safeFetch(ssr.getPopular, { data: [] }, "popular tools"),
+    safeFetch(ssr.getDp, { data: [] }, "developer tools"),
+  ]);
+
   return (
     <main className="container mx-auto">
       <SubNavbar data={sb} />
