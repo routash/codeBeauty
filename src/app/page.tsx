@@ -1,5 +1,6 @@
 import { SubNavbar } from "@/components/navbar/sub-navbar";
 import { DevelTool } from "@/components/sections/develtool";
+import { NewFun } from "@/components/sections/newfun";
 import { Popular } from "@/components/sections/popular";
 import { TrendingTools } from "@/components/sections/trendingTools";
 import WelcomePage from "@/components/ui/welcome-Page";
@@ -15,11 +16,13 @@ export default async function Home() {
     }
   };
 
-  const [sb, tt, popular, dp] = await Promise.all([
+  const [sb, tt, popular, dp ,nf] = await Promise.all([
     safeFetch(ssr.getSn, { data: { categories: [], subcategories: [] } }, "sub-categories"),
     safeFetch(ssr.getTT, { data: [] }, "trending tools"),
     safeFetch(ssr.getPopular, { data: [] }, "popular tools"),
     safeFetch(ssr.getDp, { data: [] }, "developer tools"),
+    safeFetch(ssr.getNf, { data: [] }, "newfuntools"),
+
   ]);
 
   return (
@@ -27,7 +30,7 @@ export default async function Home() {
       <SubNavbar data={sb} />
       <WelcomePage /> 
       <Popular data={popular}/>
-      {/* <NewFun data={nf} /> */}
+      <NewFun data={nf} />
       <TrendingTools data={tt}/>
       <DevelTool data={dp} />
     </main>
