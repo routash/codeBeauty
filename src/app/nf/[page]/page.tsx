@@ -2,6 +2,7 @@ import React from 'react'
 import type { Metadata } from "next";
 import { MetaData } from "@/utils/types/uiTypes";
 import { getMeta } from "@/actions/dbAction";
+import FlagMaker from '@/components/sections/flag-maker';
 
 interface PageProps {
   params: Promise<{ page: string }>;
@@ -56,10 +57,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   };
 }
 
-const page = () => {
-  return (
-    <div>page</div>
-  )
+export default function Page() {
+  return <FlagMaker />;
 }
 
-export default page
