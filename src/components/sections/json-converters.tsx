@@ -7,96 +7,48 @@ import {
   SidebarOption,
 } from "@/components/ui/reusable-sidebar"
 import { Button } from "@/components/ui/button"
-import {
-  FileText,
-  Settings,
-  Palette,
-  Download,
-  RotateCcw,
-} from "lucide-react"
+import { Settings, Palette, Download, RotateCcw } from "lucide-react"
+import { getTableData } from "@/actions/dbAction"
+import { dataType } from "@/utils/types/uiTypes"
 
-interface JsonConvertersProps {
-  defaultTool?: string
-}
-
-export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
-  const [selectedConverter, setSelectedConverter] = useState<string>(defaultTool)
+export function JsonConverters() {
+  const [selectedConverter, setSelectedConverter] = useState<string>("")
   const [inputText, setInputText] = useState<string>("")
   const [outputText, setOutputText] = useState<string>("")
 
-  // ✅ Converter options
-  const converterOptions: SidebarOption[] = [
-    {
-      id: "json-to-java",
-      label: "JSON to JAVA",
-      icon: FileText,
-      description:
-        "Convert JSON data into Java class objects with fields and data types.",
-    },
-    {
-      id: "json-to-xml",
-      label: "JSON to XML",
-      icon: FileText,
-      description: "Transform JSON objects into structured XML format.",
-    },
-    {
-      id: "json-to-yaml",
-      label: "JSON to YAML",
-      icon: FileText,
-      description:
-        "Convert JSON data into clean and human-readable YAML format.",
-    },
-    {
-      id: "json-to-csv",
-      label: "JSON to CSV",
-      icon: FileText,
-      description: "Convert JSON arrays or objects into tabular CSV data.",
-    },
-    {
-      id: "json-to-tsv",
-      label: "JSON to TSV",
-      icon: FileText,
-      description:
-        "Convert JSON data into TSV (tab-separated values) format.",
-    },
-    {
-      id: "json-to-text",
-      label: "JSON to Text",
-      icon: FileText,
-      description:
-        "Flatten and convert JSON content into simple plain text format.",
-    },
-    {
-      id: "json-to-excel",
-      label: "JSON to Excel",
-      icon: FileText,
-      description:
-        "Export JSON data into Excel (.xlsx) spreadsheet format.",
-    },
-    {
-      id: "json-to-html",
-      label: "JSON to HTML",
-      icon: FileText,
-      description:
-        "Convert JSON objects into formatted HTML tables for web use.",
-    },
-  ]
+  const [list, setList] = useState<dataType[]>([])
+
+  // Fetch SQL Tools
+  useEffect(() => {
+    const fetchData = async () => {
+      const categoriesData = await getTableData("json_converters") as dataType[]
+      setList(categoriesData)
+    }
+    fetchData()
+  }, [])
+
+  // Convert SQL data to SidebarOption format
+  const sidebarOptions: SidebarOption[] = list.map((item) => ({
+    id: item.id.toString(),
+    label: item.urlName,
+    icon: Palette,
+  }))
 
   const footerOptions: SidebarOption[] = [
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
-  const selectedOption = converterOptions.find(
-    (opt) => opt.id === selectedConverter
-  )
+  // Get selected SQL Item
+  const selectedOption = list.find(
+    (opt) => opt.id.toString() === selectedConverter
+  ) || null
 
-  // ✅ Reset input/output on converter change
   useEffect(() => {
     setInputText("")
     setOutputText("")
   }, [selectedConverter])
 
-  // ✅ Conversion Logic
+  // Conversion Logic
   const convertJson = (json: string, type: string): string => {
     try {
       const parsed = JSON.parse(json)
@@ -163,9 +115,6 @@ export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
             .join("")}</tr>${rows}</table>`
         }
 
-        case "json-to-excel":
-          return "Excel export feature placeholder (use XLSX library for real export)."
-
         default:
           return "Unsupported converter"
       }
@@ -174,10 +123,9 @@ export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
     }
   }
 
-  // ✅ Handlers
   const handleConvert = () => {
     if (!selectedConverter) {
-      alert("Please select a converter from the sidebar.")
+      alert("Please select a converter.")
       return
     }
     setOutputText(convertJson(inputText, selectedConverter))
@@ -190,19 +138,19 @@ export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
 
   const handleDownload = () => {
     if (!outputText) return
+
     const blob = new Blob([outputText], { type: "text/plain" })
     const link = document.createElement("a")
     link.href = URL.createObjectURL(blob)
-    link.download = `${selectedConverter || "converted"}.txt`
+    link.download = `${selectedConverter}.txt`
     link.click()
   }
 
-  // ✅ UI
   return (
     <ReusableSidebar
       title="JSON Converters"
       icon={Palette}
-      options={converterOptions}
+      options={sidebarOptions}
       selectedOption={selectedConverter}
       onOptionSelect={setSelectedConverter}
       footerOptions={footerOptions}
@@ -211,41 +159,36 @@ export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
         <div className="mx-auto">
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-2">
-              {selectedOption?.label || "Select a Converter"}
+              {selectedOption?.urlName || "Select a Converter"}
             </h2>
             <p className="text-muted-foreground">
-              {selectedOption?.description ||
-                "Choose a conversion type from the sidebar to begin."}
+              {selectedOption?.des || "Choose a JSON converter to start."}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Input Section */}
-            <div className="space-y-4">
-              <label className="text-sm font-medium mb-2 block">
-                Input JSON
-              </label>
+            {/* Input */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Input JSON</label>
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="border-2 border-dashed border-gray-300 rounded-lg pt-2 px-4 w-full h-full"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-3 w-full"
                 rows={10}
                 placeholder="Paste your JSON here..."
               />
             </div>
 
-            {/* Output Section */}
-            <div className="space-y-4">
+            {/* Output */}
+            <div>
               <label className="text-sm font-medium mb-2 block">Output</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[200px] overflow-auto bg-gray-50">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[200px] bg-gray-50 overflow-auto">
                 {outputText ? (
                   <pre className="text-sm whitespace-pre-wrap break-words">
                     {outputText}
                   </pre>
                 ) : (
-                  <p className="text-gray-400">
-                    Converted output will appear here
-                  </p>
+                  <p className="text-gray-400">Converted output will appear here</p>
                 )}
               </div>
             </div>
@@ -264,6 +207,35 @@ export function JsonConverters({ defaultTool = "" }: JsonConvertersProps) {
             )}
           </div>
         </div>
+
+         {/* DETAILS BOX */}
+         {selectedOption && (
+          <div className="my-8 p-4 border rounded-lg bg-gray-50 space-y-3">
+            <h3 className="text-lg font-semibold">Converter Details</h3>
+
+            <p>
+              <strong>Description:</strong>
+              <br />
+              {selectedOption.des}
+            </p>
+
+            <div>
+              <strong className="block mb-2">Keywords:</strong>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedOption.keyword
+                  ?.split(",")
+                  .map((kw, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm border border-purple-200 shadow-sm hover:bg-purple-200 transition ">
+                      {kw.trim()}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
       </SidebarContentWrapper>
     </ReusableSidebar>
   )

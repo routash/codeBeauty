@@ -1,6 +1,17 @@
 'use client'
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Chrome } from 'lucide-react';
+import {getTableData} from '@/actions/dbAction';
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Login | CodeBeauty",
+  description: "Login to your CodeBeauty account to access premium features and manage your tools.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -8,6 +19,15 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        const fetchData = async () => {
+          const res = await getTableData();
+          console.log(res);   
+        };
+      
+        fetchData();
+      }, []);
+      
     const handleSubmit = async () => {
         setIsLoading(true);
         // Simulate API call

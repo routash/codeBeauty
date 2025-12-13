@@ -1,48 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ReusableSidebar,
   SidebarContentWrapper,
   SidebarOption,
 } from "@/components/ui/reusable-sidebar";
 import { Button } from "@/components/ui/button";
-import { FileText, Settings, Code } from "lucide-react";
+import { Settings, Code } from "lucide-react";
+import { getTableData } from "@/actions/dbAction";
+import { dataType } from "@/utils/types/uiTypes"; // FIXED IMPORT
 
 export default function XmlConverters() {
   const [selectedConverter, setSelectedConverter] = useState("");
   const [inputText, setInputText] = useState("");
   const [outputText, setOutputText] = useState("");
+  const [list, setList] = useState<dataType[]>([]);
 
-  const converterOptions: SidebarOption[] = [
-    {
-      id: "xml-to-json",
-      label: "XML to JSON",
-      icon: FileText,
-      description: "Convert XML data into JSON format.",
-    },
-    {
-      id: "json-to-xml",
-      label: "JSON to XML",
-      icon: FileText,
-      description: "Convert JSON structure back into XML format.",
-    },
-  ];
+  // -----------------------
+  // Fetch converter list
+  // -----------------------
+  useEffect(() => {
+    const fetchData = async () => {
+      const categoriesData = await getTableData("xml_converters") as dataType[];
+      setList(categoriesData);
+    };
+    fetchData();
+  }, []);
+
+  // Convert SQL data → SidebarOption[]
+  const sidebarOptions: SidebarOption[] = list.map((item) => ({
+    id: item.id.toString(),
+    label: item.urlName,
+    icon: Code,
+  }));
 
   const footerOptions: SidebarOption[] = [
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  const selectedOption = converterOptions.find(
-    (opt) => opt.id === selectedConverter
+  const selectedOption = list.find(
+    (opt) => opt.id.toString() === selectedConverter
   );
 
+  // Change converter
   const handleConverterChange = (converterId: string) => {
     setSelectedConverter(converterId);
     setInputText("");
     setOutputText("");
   };
 
+  // -----------------------
+  // XML → JSON
+  // -----------------------
   const xmlToJson = (xmlString: string) => {
     try {
       const parser = new DOMParser();
@@ -50,6 +60,7 @@ export default function XmlConverters() {
 
       const traverse = (node: any): any => {
         const obj: any = {};
+
         if (node.nodeType === 1) {
           // Element
           if (node.attributes.length > 0) {
@@ -66,7 +77,9 @@ export default function XmlConverters() {
         for (let child of node.childNodes) {
           const childObj = traverse(child);
           if (child.nodeType === 3 && !childObj) continue;
+
           const nodeName = child.nodeName;
+
           if (obj[nodeName]) {
             if (!Array.isArray(obj[nodeName])) {
               obj[nodeName] = [obj[nodeName]];
@@ -83,19 +96,23 @@ export default function XmlConverters() {
       const result = traverse(xmlDoc);
       return JSON.stringify(result, null, 2);
     } catch (err) {
-      return "Invalid XML format!";
+      return "❌ Invalid XML format!";
     }
   };
 
+  // -----------------------
+  // JSON → XML
+  // -----------------------
   const jsonToXml = (jsonString: string) => {
     try {
       const obj = JSON.parse(jsonString);
-      const convert = (obj: any) => {
+
+      const convert = (obj: any): string => {
         let xml = "";
+
         for (let prop in obj) {
-          if (prop === "@attributes") {
-            continue;
-          }
+          if (prop === "@attributes") continue;
+
           if (Array.isArray(obj[prop])) {
             for (let item of obj[prop]) {
               xml += `<${prop}>${convert(item)}</${prop}>`;
@@ -108,12 +125,16 @@ export default function XmlConverters() {
         }
         return xml;
       };
+
       return `<root>${convert(obj)}</root>`;
-    } catch (err) {
-      return "Invalid JSON format!";
+    } catch {
+      return "❌ Invalid JSON format!";
     }
   };
 
+  // -----------------------
+  // MAIN CONVERTER LOGIC
+  // -----------------------
   const convertXml = (input: string, type: string) => {
     if (!input.trim()) return "Please enter input text";
 
@@ -141,16 +162,17 @@ export default function XmlConverters() {
   };
 
   const handleCopy = () => {
-    if (outputText) {
-      navigator.clipboard.writeText(outputText);
-    }
+    if (outputText) navigator.clipboard.writeText(outputText);
   };
 
+  // -----------------------
+  // UI
+  // -----------------------
   return (
     <ReusableSidebar
       title="XML Converter Tools"
       icon={Code}
-      options={converterOptions}
+      options={sidebarOptions}  // FIXED
       selectedOption={selectedConverter}
       onOptionSelect={handleConverterChange}
       footerOptions={footerOptions}
@@ -159,15 +181,16 @@ export default function XmlConverters() {
         <div className="mx-auto">
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-2">
-              {selectedOption?.label}
+              {selectedOption?.urlName || "Select Converter"}
             </h2>
             <p className="text-muted-foreground">
-              {selectedOption?.description}
+              {selectedOption?.des || "Choose a conversion tool from the sidebar."}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
+            {/* Input */}
+            <div>
               <label className="text-sm font-medium mb-2 block">Input</label>
               <textarea
                 value={inputText}
@@ -177,7 +200,8 @@ export default function XmlConverters() {
               />
             </div>
 
-            <div className="space-y-4">
+            {/* Output */}
+            <div>
               <label className="text-sm font-medium mb-2 block">Output</label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 h-[400px] overflow-auto">
                 {outputText ? (
@@ -185,26 +209,50 @@ export default function XmlConverters() {
                     {outputText}
                   </pre>
                 ) : (
-                  <p className="text-gray-400">
-                    Converted output will appear here
-                  </p>
+                  <p className="text-gray-400">Converted output will appear here</p>
                 )}
               </div>
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="mt-6 flex gap-2">
             <Button onClick={handleConvert}>Convert</Button>
-            <Button variant="outline" onClick={handleClear}>
-              Clear
-            </Button>
+            <Button variant="outline" onClick={handleClear}>Clear</Button>
             {outputText && (
-              <Button variant="outline" onClick={handleCopy}>
-                Copy
-              </Button>
+              <Button variant="outline" onClick={handleCopy}>Copy</Button>
             )}
           </div>
         </div>
+
+        {/* DETAILS BOX */}
+        {selectedOption && (
+          <div className="my-8 p-4 border rounded-lg bg-gray-50 space-y-3">
+            <h3 className="text-lg font-semibold">Converter Details</h3>
+
+            <p>
+              <strong>Description:</strong>
+              <br />
+              {selectedOption.des}
+            </p>
+
+            <div>
+              <strong className="block mb-2">Keywords:</strong>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedOption.keyword
+                  ?.split(",")
+                  .map((kw, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm border border-purple-200 shadow-sm hover:bg-purple-200 transition ">
+                      {kw.trim()}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
       </SidebarContentWrapper>
     </ReusableSidebar>
   );

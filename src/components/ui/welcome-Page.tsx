@@ -52,14 +52,6 @@ export default function WelcomePage() {
     };
   }, []);
 
-  const tools = [
-    { name: "JSON Beautifier", emoji: "✨", color: "from-purple-500 to-pink-500" },
-    { name: "HTML Viewer", emoji: "🌐", color: "from-pink-500 to-red-500" },
-    { name: "Number to Words", emoji: "🔢", color: "from-blue-500 to-cyan-500" },
-    { name: "SQL Formatter", emoji: "💾", color: "from-green-500 to-emerald-500" },
-    { name: "Image to Base64", emoji: "🖼️", color: "from-orange-500 to-yellow-500" },
-  ];
-
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 overflow-x-hidden">
       <main className="relative z-10 w-full">
@@ -185,31 +177,6 @@ export default function WelcomePage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* 🧰 Popular Tools Section */}
-          <div className="px-6 py-12 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-            <h3 className="text-3xl font-bold text-center mb-8 text-gray-800">
-              Popular Functionality
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
-              {tools.map((tool, i) => (
-                <div
-                  key={i}
-                  className="group bg-white rounded-2xl p-5 shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all border-2 border-transparent hover:border-purple-200 cursor-pointer"
-                >
-                  <div
-                    className={`w-16 h-16 bg-gradient-to-br ${tool.color} rounded-xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform shadow-md mx-auto`}
-                  >
-                    {tool.emoji}
-                  </div>
-                  <h4 className="text-base font-semibold text-gray-800 text-center group-hover:text-purple-600">
-                    {tool.name}
-                  </h4>
-                </div>
-              ))}
             </div>
           </div>
         </div>

@@ -1,26 +1,62 @@
-"use client";
 
 import { JsonConverters } from "@/components/sections/json-converters";
-import { notFound, useParams } from "next/navigation";
+import type { Metadata } from "next";
+import { MetaData } from "@/utils/types/uiTypes";
+import { getMeta } from "@/actions/dbAction";
 
-const validTools = [
-  "json-to-java",
-  "json-to-xml",
-  "json-to-yaml",
-  "json-to-csv",
-  "json-to-tsv",
-  "json-to-text",
-  "json-to-excel",
-  "json-to-html",
-];
+interface PageProps {
+  params: Promise<{ tool: string }>;
+}
 
-export default function ToolPage() {
-  const params = useParams();
-  const tool = params?.tool as string;
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const { params } = await props;
+  const { tool } = await params;
+  const data = await getMeta("json_converters", tool);
 
-  if (!validTools.includes(tool)) {
-    notFound();
+  if (!data) {
+    return {
+      title: "JSON Converter Not Found | CodeBeauty",
+      description: "The requested JSON converter does not exist.",
+    };
   }
 
-  return <JsonConverters defaultTool={tool} />;
+  let meta: MetaData = {};
+  if (typeof data === "string") {
+    try {
+      meta = JSON.parse(data || "{}");
+    } catch (e) {
+      // If parsing fails, meta remains empty
+    }
+  } else if (typeof data === "object" && data !== null) {
+    meta = { ...data } as MetaData;
+  }
+  const title = meta.title || "JSON Converter";
+  const description = meta.description || "Convert JSON data with our powerful JSON converter tool.";
+  const keywords = meta.keywords || "json converter, json tools, data converter";
+
+  return {
+    title: `${title} | CodeBeauty`,
+    description,
+    keywords,
+    openGraph: {
+      title: `${title} | CodeBeauty`,
+      description,
+      url: `https://codebeauty.com/json-converters/${tool}`,
+      type: "website",
+      siteName: "CodeBeauty",
+      ...(meta.ogImage && { images: [{ url: meta.ogImage }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | CodeBeauty`,
+      description,
+    },
+    alternates: {
+      canonical: `https://codebeauty.com/json-converters/${tool}`,
+    },
+  };
+}
+
+export default function ToolPage() {
+  return <JsonConverters />;
 }

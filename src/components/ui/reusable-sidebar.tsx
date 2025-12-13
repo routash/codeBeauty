@@ -23,6 +23,7 @@ export interface SidebarOption {
   label: string
   icon: LucideIcon
   description?: string
+  keyword? : string
   onClick?: () => void
 }
 

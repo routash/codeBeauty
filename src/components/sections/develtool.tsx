@@ -1,12 +1,24 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Heading } from "../ui/heading";
 import { ToolCard } from "../ui/toolcard";
 import { useRouter } from "next/navigation";
+import { dataType } from "./base64-tools";
+import { getTableData } from "@/actions/dbAction";
 
-export function DevelTool(data : any) {
+export function DevelTool() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-const route = useRouter();
+  const [data, setData] = useState<dataType[]>([]);
+  const route = useRouter();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const categoriesData = (await getTableData("developertools")) as unknown as dataType[];
+      setData(Array.isArray(categoriesData) ? categoriesData : []);
+    };
+    fetchData();
+  }, []);
+
   return (
     <section className="relative py-12 px-6 bg-gradient-to-br from-[#f0f4ff] via-[#fdf2ff] to-[#f0fff4] rounded-3xl shadow-md overflow-hidden">
       {/* Optional decorative background */}
@@ -16,7 +28,7 @@ const route = useRouter();
         <Heading title="Developer Tools" align="left" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-6">
-          {data.data.data.map((tool : any, index : number) => (
+          {data.map((tool : any, index : number) => (
             <ToolCard
               key={index}
               title={tool.name}

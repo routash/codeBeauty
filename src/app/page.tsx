@@ -1,35 +1,42 @@
 import { SubNavbar } from "@/components/navbar/sub-navbar";
 import { DevelTool } from "@/components/sections/develtool";
+import { NewFun } from "@/components/sections/newfun";
 import { Popular } from "@/components/sections/popular";
 import { TrendingTools } from "@/components/sections/trendingTools";
 import WelcomePage from "@/components/ui/welcome-Page";
-import { ssr } from "@/utils/consitants/api";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "CodeBeauty - Free Online Developer Tools & Utilities",
+  description: "CodeBeauty offers a comprehensive collection of free online developer tools, converters, formatters, and utilities to help you code faster and better.",
+  keywords: "developer tools, online tools, code formatter, json converter, base64 encoder, sql converter, web utilities",
+  openGraph: {
+    title: "CodeBeauty - Free Online Developer Tools & Utilities",
+    description: "CodeBeauty offers a comprehensive collection of free online developer tools, converters, formatters, and utilities to help you code faster and better.",
+    url: "https://codebeauty.com",
+    type: "website",
+    siteName: "CodeBeauty",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CodeBeauty - Free Online Developer Tools & Utilities",
+    description: "CodeBeauty offers a comprehensive collection of free online developer tools, converters, formatters, and utilities to help you code faster and better.",
+  },
+  alternates: {
+    canonical: "https://codebeauty.com",
+  },
+};
 
 export default async function Home() {
-  const safeFetch = async <T,>(fetcher: () => Promise<T>, fallback: T, label: string): Promise<T> => {
-    try {
-      return await fetcher();
-    } catch (error) {
-      console.error(`Failed to load ${label}`, error);
-      return fallback;
-    }
-  };
-
-  const [sb, tt, popular, dp] = await Promise.all([
-    safeFetch(ssr.getSn, { data: { categories: [], subcategories: [] } }, "sub-categories"),
-    safeFetch(ssr.getTT, { data: [] }, "trending tools"),
-    safeFetch(ssr.getPopular, { data: [] }, "popular tools"),
-    safeFetch(ssr.getDp, { data: [] }, "developer tools"),
-  ]);
-
+ 
   return (
     <main className="container mx-auto">
-      <SubNavbar data={sb} />
+      <SubNavbar  />
       <WelcomePage /> 
-      <Popular data={popular}/>
-      {/* <NewFun data={nf} /> */}
-      <TrendingTools data={tt}/>
-      <DevelTool data={dp} />
+      <Popular />
+      {/* <NewFun /> */}
+      <TrendingTools/>
+      <DevelTool />
     </main>
   );
 }

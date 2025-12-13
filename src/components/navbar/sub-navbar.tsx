@@ -10,36 +10,53 @@ import {
   NavigationMenuLink,
 } from "../ui/navigation-menu";
 import Link from "next/link";
+import { getTableData } from "@/actions/dbAction";
 
-export function SubNavbar(props: any) {
+export function SubNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-console.log(props.data.data)
-  // Extract categories + subcategories from API
-  const categories = props.data.data.categories;
-  const subcategories = props.data.data.subcategories;
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubCategories] = useState<any[]>([]);
 
-  // Merge subcategories inside categories
-  const mergedCategories = categories.map((cat: any) => ({
-    ...cat,
-    subcategories: subcategories.filter(
-      (sub: any) => sub.category_id === cat.id
-    ),
-  }));
-// console.log(mergedCategories)
+  // Fetch categories & subcategories
   useEffect(() => {
+    const fetchData = async () => {
+      const categoriesData = await getTableData("categories");
+      const subcategoriesData = await getTableData("subcategories");
+      
+      // Both getTableData may return a QueryResult, which is either an array or OkPacket.
+      // We need to ensure that only arrays are set.
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setSubCategories(Array.isArray(subcategoriesData) ? subcategoriesData : []);
+    };
+
+    fetchData();
+
     const handleScroll = () => setIsScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handleScroll);
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Merge subcategories inside categories
+  const mergedCategories = categories.map((cat) => ({
+    ...cat,
+    subcategories: subcategories.filter(
+      (sub) => sub.category_id === cat.id
+    ),
+  }));
 
   return (
     <>
       {/* Navbar wrapper */}
       <div
         className={`fixed left-0 right-0 z-40 transition-all duration-1500 
-        ${isScrolled ? "top-[5px] bg-white shadow-lg border-b" : "top-[55px] bg-white/70 backdrop-blur-md"}
-      `}
+          ${
+            isScrolled
+              ? "top-[5px] bg-white shadow-lg border-b"
+              : "top-[55px] bg-white/70 backdrop-blur-md"
+          }
+        `}
       >
         {/* Mobile Toggle */}
         <div className="lg:hidden flex justify-between items-center px-4 py-2">
@@ -57,7 +74,7 @@ console.log(props.data.data)
         <nav className="hidden lg:flex justify-center px-4 py-1">
           <NavigationMenu viewport={false}>
             <NavigationMenuList className="flex gap-0 flex-wrap justify-center">
-              {mergedCategories.map((cat: any) => (
+              {mergedCategories.map((cat) => (
                 <NavigationMenuItem key={cat.id}>
                   <NavigationMenuTrigger className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-purple-100 transition">
                     {cat.name}
@@ -76,7 +93,7 @@ console.log(props.data.data)
                             : "grid-cols-1"
                         }`}
                       >
-                        {cat.subcategories.map((sub: any) => (
+                        {cat.subcategories.map((sub: { id: string | number; route: string; name: string }) => (
                           <NavigationMenuLink asChild key={sub.id}>
                             <Link
                               href={`/${sub.route}`}
@@ -98,7 +115,7 @@ console.log(props.data.data)
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="lg:hidden px-4 pb-3 bg-white border-t shadow-md animate-slideDown">
-            {mergedCategories.map((cat: any) => (
+            {mergedCategories.map((cat) => (
               <div key={cat.id} className="mb-2">
                 <details className="group">
                   <summary className="cursor-pointer py-2 px-2 bg-gray-100 rounded-md font-medium flex justify-between items-center">
@@ -107,7 +124,7 @@ console.log(props.data.data)
                   </summary>
 
                   <div className="mt-1 pl-3 space-y-1">
-                    {cat.subcategories.map((sub: any) => (
+                    {cat.subcategories.map((sub: { id: string | number; route: string; name: string }) => (
                       <Link
                         key={sub.id}
                         href={`/${sub.route}`}
