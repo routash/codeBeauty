@@ -10,28 +10,27 @@ import {
   NavigationMenuLink,
 } from "../ui/navigation-menu";
 import Link from "next/link";
-import { getTableData } from "@/actions/dbAction";
 
-export function SubNavbar() {
+interface Category {
+  id: string | number;
+  name: string;
+}
+
+interface Subcategory {
+  id: string | number;
+  route: string;
+  name: string;
+  category_id: string | number;
+}
+
+export function SubNavbar({ categoriesData, subcategoriesData }: { categoriesData: Category[], subcategoriesData: Subcategory[] }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [subcategories, setSubCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>(categoriesData);
+  const [subcategories, setSubCategories] = useState<any[]>(subcategoriesData);
 
   // Fetch categories & subcategories
   useEffect(() => {
-    const fetchData = async () => {
-      const categoriesData = await getTableData("categories");
-      const subcategoriesData = await getTableData("subcategories");
-      
-      // Both getTableData may return a QueryResult, which is either an array or OkPacket.
-      // We need to ensure that only arrays are set.
-      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-      setSubCategories(Array.isArray(subcategoriesData) ? subcategoriesData : []);
-    };
-
-    fetchData();
-
     const handleScroll = () => setIsScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handleScroll);
 

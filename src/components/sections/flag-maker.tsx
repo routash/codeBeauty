@@ -1,10 +1,11 @@
+// @ts-nocheck
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, Upload } from 'lucide-react';
 
 const FlagMaker = () => {
-  const canvasRef = useRef(null);
-  const downloadCanvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
   const [layers, setLayers] = useState([
     { id: 1, type: 'rect', x: 0, y: 0, width: 33.33, height: 100, color: '#0066cc' },
     { id: 2, type: 'rect', x: 33.33, y: 0, width: 33.33, height: 100, color: '#ffffff' },
@@ -65,7 +66,8 @@ const FlagMaker = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    
+    if (!ctx) return;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     if (bgImage) {

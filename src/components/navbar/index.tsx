@@ -2,6 +2,36 @@
 import { useState, useEffect } from "react";
 import { Menu, X, Sparkles } from "lucide-react";
 
+// Custom hook to detect Dark Reader
+const useDarkReader = () => {
+  const [hasDarkReader, setHasDarkReader] = useState(false);
+
+  useEffect(() => {
+    // Check if Dark Reader is installed by looking for its specific attributes or styles
+    const checkForDarkReader = () => {
+      const testElement = document.createElement('div');
+      testElement.style.display = 'none';
+      document.body.appendChild(testElement);
+
+      // Dark Reader adds specific CSS variables or modifies elements
+      const computedStyle = getComputedStyle(testElement);
+      const hasDarkReaderVars = computedStyle.getPropertyValue('--darkreader-background') ||
+                               computedStyle.getPropertyValue('--darkreader-text') ||
+                               testElement.getAttribute('data-darkreader-inline-bgcolor');
+
+      document.body.removeChild(testElement);
+      setHasDarkReader(!!hasDarkReaderVars);
+    };
+
+    // Check after a short delay to let extensions load
+    const timer = setTimeout(checkForDarkReader, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return hasDarkReader;
+};
+
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,6 +60,7 @@ export function Navbar() {
       className={`top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled ? "bg-white shadow-md" : "bg-white/95 backdrop-blur"
       }`}
+      suppressHydrationWarning={true}
     >
       <nav
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
@@ -40,7 +71,7 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0 z-10">
             <a href="/" className="flex items-center space-x-2 group">
-              <div className="relative w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-md">
+              <div className="relative w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-md" suppressHydrationWarning={true}>
                 <Sparkles className="w-4 h-4 text-white" strokeWidth={2.5} />
               </div>
               <div className="flex flex-col">

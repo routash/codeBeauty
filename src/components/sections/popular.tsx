@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Heading } from "../ui/heading";
 import { getTableData } from "@/actions/dbAction";
 import { dataType } from "@/utils/types/uiTypes";
@@ -11,8 +10,6 @@ import Link from "next/link";
 export function Popular() {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [data, setData] = useState<dataType[]>([]);
-  const router = useRouter();
-
   useEffect(() => {
     (async () => {
       const res = (await getTableData("popular")) as unknown as dataType[];
@@ -20,9 +17,6 @@ export function Popular() {
     })();
   }, []);
 
-  const handleToolClick = (toolUrl: string) => {
-    router.push(`/${toolUrl}`);
-  };
 
   return (
     <section className="relative py-14 px-6 rounded-[28px] overflow-hidden bg-gradient-to-br from-indigo-50 via-rose-50 to-cyan-50 shadow-xl">
@@ -42,8 +36,7 @@ export function Popular() {
             return (
               <Link
                 key={tool.id}
-                // onClick={() => handleToolClick(tool.url)}
-                href={tool.route as string}
+                href={tool.route ?? "#"}
                 onMouseEnter={() => setActiveId(tool.id)}
                 onMouseLeave={() => setActiveId(null)}
                 aria-label={`Open ${tool.name}`}

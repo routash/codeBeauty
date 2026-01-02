@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Heading } from "../ui/heading";
 import { ToolCard } from "../ui/toolcard";
 import { useRouter } from "next/navigation";
-import { dataType } from "./base64-tools";
+import { dataType } from "@/utils/types/uiTypes";
 import { getTableData } from "@/actions/dbAction";
 
 export function DevelTool() {
@@ -31,10 +31,10 @@ export function DevelTool() {
           {data.map((tool : any, index : number) => (
             <ToolCard
               key={index}
-              title={tool.name}
+              title={tool.urlName}
               variant={tool.variant as "primary" | "default"}
               isActive={activeIndex === index} 
-              onClick={() =>{ setActiveIndex(index); route.push(tool.url) }}
+              onClick={() =>{ setActiveIndex(index); route.push(tool.route) }}
             />
           ))}
         </div>

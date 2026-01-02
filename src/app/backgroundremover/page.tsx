@@ -24,5 +24,5 @@ export const metadata: Metadata = {
 
 export default function Page() {
   // return <BackgroundRemover />;
-  return <div>Hello</div>;
+  // return <div>Hello</div>;
 }

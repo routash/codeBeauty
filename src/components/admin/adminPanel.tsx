@@ -1,10 +1,21 @@
-"use client"
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Search, Menu, Link2, TrendingUp, Sparkles, Code, DollarSign, Home } from 'lucide-react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Plus, Edit2, Menu, Trash2Icon, ExternalLink, FolderCodeIcon, Loader2 } from 'lucide-react';
+import { addNewRecord, getTableData, updateRecord } from '@/actions/dbAction';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { fromDataType, MetaData } from '@/utils/types/uiTypes';
+import { categories } from '@/utils/consitants/consitaint';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface Tool {
   id: number;
-  u_Id: string;
+  url_id: string;
   name: string;
   url: string;
   des: string;
@@ -12,453 +23,565 @@ interface Tool {
   category: string;
 }
 
-const categories = [
-  { id: 'all', name: 'All Tools', icon: Home },
-  { id: 'urlTometa', name: 'URL to Meta', icon: Link2 },
-  { id: 'popularTools', name: 'Popular Tools', icon: TrendingUp },
-  { id: 'newFunction', name: 'New Function', icon: Sparkles },
-  { id: 'developerTools', name: 'Developer Tools', icon: Code },
-  { id: 'tradingTool', name: 'Trading Tool', icon: DollarSign },
-];
-
 export default function AdminPanel() {
-  const [tools, setTools] = useState<Tool[]>([
-    {
-      id: 1,
-      u_Id: "ip-01",
-      name: "IP Tools",
-      url: "developmenttool/ip-tools",
-      des: "Tools to check, lookup and analyze IP details.",
-      keyword: "ip address, lookup, network",
-      category: "developerTools"
-    }
-  ]);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  const [activeCategory, setActiveCategory] = useState('all');
+  useEffect(() => {
+    getDetails('popular');
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  /* ===================== STATE ===================== */
+  const [tools, setTools] = useState<fromDataType[]>([]);
+
+  const [activeCategory, setActiveCategory] = useState('Header');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTool, setEditingTool] = useState<Tool | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [formData, setFormData] = useState<Omit<Tool, 'id'>>({
-    u_Id: "",
-    name: "",
-    url: "",
-    des: "",
-    keyword: "",
-    category: "developerTools"
-  });
+  const [mode, setMode] = useState<string>();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [metadata, setMata] = useState<MetaData>();
+  const [formData, setFormData] = useState<fromDataType>();
+  const [loading, setLoading] = useState<boolean>();
 
-  const openModal = (tool?: Tool) => {
-    if (tool) {
-      setEditingTool(tool);
-      setFormData({
-        u_Id: tool.u_Id,
-        name: tool.name,
-        url: tool.url,
-        des: tool.des,
-        keyword: tool.keyword,
-        category: tool.category
-      });
-    } else {
-      setEditingTool(null);
-      setFormData({
-        u_Id: "",
-        name: "",
-        url: "",
-        des: "",
-        keyword: "",
-        category: activeCategory === 'all' ? 'developerTools' : activeCategory
-      });
-    }
+  /* ===================== HELPERS ===================== */
+  const openModal = (tool?: fromDataType) => {
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
+    setFormData(undefined);
+    setMata(undefined);
+    setMode('');
     setIsModalOpen(false);
-    setEditingTool(null);
   };
-
-  const handleSubmit = () => {
-    if (!formData.u_Id || !formData.name || !formData.url || !formData.des || !formData.keyword) {
-      alert('Please fill in all fields');
-      return;
-    }
-    
-    if (editingTool) {
-      setTools(tools.map(tool => 
-        tool.id === editingTool.id 
-          ? { ...formData, id: editingTool.id }
-          : tool
-      ));
+  const handleSubmit = async () => {
+    setLoading(true);
+    const updatedFormData = {
+      ...formData,
+      metaData: metadata,
+    };
+    let result;
+    if (mode === 'edit') {
+      result = await updateRecord(updatedFormData.url_id, updatedFormData);
     } else {
-      const newTool: Tool = {
-        ...formData,
-        id: Math.max(...tools.map(t => t.id), 0) + 1
-      };
-      setTools([...tools, newTool]);
+      result = await addNewRecord(updatedFormData);
     }
-    
-    closeModal();
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      setTools(tools.filter(tool => tool.id !== id));
+    if (result.success) {
+      toast.success(result.message);
+      closeModal();
+      setLoading(false);
+    } else {
+      toast.error(result.message);
+      setLoading(false);
     }
+    await getTableData(updatedFormData.category);
+  };
+  // updateRecord(updatedFormData.url_id, updatedFormData)
+  const filteredTools = tools.filter(
+    (t) =>
+      (activeCategory === 'all' || t.category === activeCategory) &&
+      ((t.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+        (t.url_id?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+        (t.des?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
+  );
+  // console.log(filteredTools);
+  const getDetails = async (id: string) => {
+    setActiveCategory(id);
+    const data = await getTableData(id);
+    // Ensure data is an array (handle QueryResult/OkPacket case)
+    const arr = Array.isArray(data) ? data : [];
+    // Map database result to Tool[]
+    const mappedTools: Tool[] = arr.map((item: any) => ({
+      id: item.id,
+      url_id: item.url_id,
+      urlName: item.urlName,
+      name: item.name || '',
+      url: item.route,
+      des: item.des,
+      keyword: item.keyword,
+      metaData: item.metadata,
+      category: id === 'all' ? 'developerTools' : id,
+    }));
+    setTools(mappedTools);
+    // console.log(mappedTools);
+  };
+  const getMeta = (metaData?: string | any) => {
+    if (!metaData) return null;
+
+    if (typeof metaData === 'string') {
+      try {
+        return JSON.parse(metaData);
+      } catch {
+        return null;
+      }
+    }
+
+    return metaData;
   };
 
-  const filteredTools = tools.filter(tool => {
-    const matchesCategory = activeCategory === 'all' || tool.category === activeCategory;
-    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tool.u_Id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tool.des.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const getCategoryName = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId)?.name || categoryId;
+  const handleEdit = (tooldata: fromDataType) => {
+    setMode('edit');
+    openModal();
+    let data = getMeta(tooldata.metaData);
+    setMata(data);
+    setFormData(tooldata);
+  };
+  const handleAdd = () => {
+    setMode('add');
+    openModal();
+  };
+  // const getCategoryName = (id: string) => categories.find((c) => c.id === id)?.name || id;
+  const generateRandomId = (length = 10) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
 
+  /* ===================== UI ===================== */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-        <div className="h-full flex flex-col">
-          {/* Logo */}
-          <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600">
-            <h2 className="text-2xl font-bold text-white">Admin Panel</h2>
-            <p className="text-blue-100 text-sm mt-1">Tool Manager</p>
-          </div>
-
-          {/* Categories */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {categories.map((category) => {
-              const Icon = category.icon;
-              const isActive = activeCategory === category.id;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => {
-                    setActiveCategory(category.id);
-                    setIsSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-200'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{category.name}</span>
-                  {isActive && (
-                    <div className="ml-auto">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="text-center">
-              <p className="text-xs text-gray-500">Total Tools</p>
-              <p className="text-2xl font-bold text-gray-900">{tools.length}</p>
-            </div>
-          </div>
+    <div
+      className="min-h-screen bg-slate-50 dark:bg-black text-gray-900 dark:text-gray-100"
+      suppressHydrationWarning={true}
+    >
+      {/* ===================== SIDEBAR ===================== */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-black border-r dark:border-slate-800 transform transition-transform ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0`}
+      >
+        <div className="p-6 border-b dark:border-slate-800 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h2 className="text-xl font-bold text-white">Admin Panel</h2>
+          <p className="text-blue-100 text-sm">Tool Manager</p>
         </div>
+
+        <nav className="p-4 p-y-2 space-y-1">
+          {categories.map((cat) => {
+            // const Icon =                                                                                                                                                                          cat.icon;
+            const active = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                // onClick={() => setActiveCategory(cat.id)}
+                onClick={() => getDetails(cat.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition hover:cursor-pointer text-sm font-bold
+                  ${active ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+              >
+                {/* <FingerprintIcon /> */}
+                {cat.name}
+              </button>
+            );
+          })}
+        </nav>
       </aside>
 
-      {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
-      )}
-
-      {/* Main Content */}
+      {/* ===================== MAIN ===================== */}
       <div className="lg:ml-64">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                  className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Menu size={24} />
-                </button>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    {categories.find(cat => cat.id === activeCategory)?.name || 'All Tools'}
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {filteredTools.length} {filteredTools.length === 1 ? 'tool' : 'tools'} found
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => openModal()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-200 hover:shadow-xl"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add Tool</span>
-              </button>
-            </div>
+        {/* HEADER */}
+        <div className="sticky top-0 z-30 bg-white dark:bg-black border-b dark:border-slate-800 px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden">
+              <Menu />
+            </button>
+            {/* <h1 className="text-2xl font-bold">
+              {getCategoryName(activeCategory)}
+            </h1> */}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-slate-800"
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            <button
+              onClick={() => handleAdd()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
+            >
+              <Plus size={18} /> Add Tool
+            </button>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative max-w-2xl">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search tools by name, ID, or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden md:block bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unique ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">URL</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Keywords</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredTools.map((tool) => (
-                    <tr key={tool.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{tool.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-xs font-semibold">
-                          {tool.u_Id}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tool.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
-                          {getCategoryName(tool.category)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{tool.url}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{tool.des}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{tool.keyword}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() => openModal(tool)}
-                          className="text-blue-600 hover:text-blue-800 mr-4 p-2 hover:bg-blue-50 rounded-lg transition-all"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tool.id)}
-                          className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {filteredTools.length === 0 && (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                  <Search className="text-gray-400" size={32} />
-                </div>
-                <p className="text-gray-500 text-lg">No tools found</p>
-                <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="md:hidden space-y-4">
+        {/* CONTENT */}
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredTools.map((tool) => (
-              <div key={tool.id} className="bg-white rounded-xl shadow-lg p-5 border border-gray-100 hover:shadow-xl transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{tool.name}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-block px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-xs font-semibold">
-                        {tool.u_Id}
-                      </span>
-                      <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
-                        {getCategoryName(tool.category)}
-                      </span>
+              <div
+                key={tool.id}
+                className="group relative overflow-hidden rounded-2xl
+      bg-white dark:bg-slate-900
+      border border-slate-200 dark:border-slate-800
+      shadow-sm hover:shadow-xl hover:-translate-y-1
+      transition-all duration-300"
+              >
+                {/* Hover gradient */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition
+        bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5"
+                />
+
+                {/* ACTIONS */}
+                <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    onClick={() => handleEdit(tool)}
+                    className="p-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-blue-600 hover:text-white hover:cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-red-600 hover:text-white hover:cursor-pointer">
+                    <Trash2Icon className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* CONTENT */}
+                <div className="relative p-5 space-y-4">
+                  {/* TOOL INFO */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {tool.name || tool.urlName}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {tool.des}
+                    </p>
+
+                    <div className="mt-2 text-xs text-slate-400">
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {tool.keyword.split(',').map((keyword: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2.5 py-1 text-sm rounded-lg
+                                  bg-emerald-300 text-slate-900 italic
+                                  transition"
+                          >
+                            {keyword.trim()}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 ml-3">
-                    <button
-                      onClick={() => openModal(tool)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all shadow-sm"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(tool.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all shadow-sm"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+
+                  {/* SEO INFO */}
+                  {(() => {
+                    const meta = getMeta(tool.metaData);
+
+                    if (!meta) return null;
+
+                    return (
+                      <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3 space-y-1">
+                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          SEO Metadata
+                        </h4>
+
+                        {meta.title && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                            <span className="font-medium">Title:</span> {meta.title}
+                          </p>
+                        )}
+
+                        {meta.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                            <span className="font-medium">Description:</span> {meta.description}
+                          </p>
+                        )}
+                        {meta.keywords && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {meta.keywords.split(',').map((keyword: string, i: number) => (
+                              <span
+                                key={i}
+                                className="px-2.5 py-1 text-xs rounded-lg
+                                  bg-green-100 text-slate-700 font-mono
+                                  transition"
+                              >
+                                {keyword.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
-                <div className="space-y-2 text-sm border-t pt-3 mt-3">
-                  <p className="text-gray-600"><span className="font-semibold text-gray-700">URL:</span> {tool.url}</p>
-                  <p className="text-gray-600"><span className="font-semibold text-gray-700">Description:</span> {tool.des}</p>
-                  <p className="text-gray-600"><span className="font-semibold text-gray-700">Keywords:</span> {tool.keyword}</p>
+
+                {/* FOOTER */}
+                <div className="relative px-5 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                  <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                    {tool.category}
+                  </span>
+                  <span className="text-xs text-slate-400">ID: {tool.url_id}</span>
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      Link
+                    </span>
+
+                    <Link
+                      href={(tool.route ?? tool.url) as string}
+                      target="_blank"
+                      className="group inline-flex items-center gap-2
+      px-3 py-1.5 rounded-lg
+      bg-slate-100 dark:bg-slate-800
+      text-sm text-blue-600 dark:text-blue-400
+      hover:bg-blue-50 dark:hover:bg-blue-900/30
+      transition"
+                    >
+                      <span className="truncate max-w-[200px]">{tool.route ?? tool.url}</span>
+
+                      <ExternalLink className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
-            {filteredTools.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                  <Search className="text-gray-400" size={32} />
-                </div>
-                <p className="text-gray-500 text-lg">No tools found</p>
-                <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">
-                  {editingTool ? 'Edit Tool' : 'Add New Tool'}
-                </h2>
-                <button
-                  onClick={closeModal}
-                  className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Unique ID
-                </label>
-                <input
-                  type="text"
-                  value={formData.u_Id}
-                  onChange={(e) => setFormData({ ...formData, u_Id: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., ip-01"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., IP Tools"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  {categories.filter(cat => cat.id !== 'all').map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  URL
-                </label>
-                <input
-                  type="text"
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., developmenttool/ip-tools"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.des}
-                  onChange={(e) => setFormData({ ...formData, des: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Brief description of the tool..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Keywords
-                </label>
-                <input
-                  type="text"
-                  value={formData.keyword}
-                  onChange={(e) => setFormData({ ...formData, keyword: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="e.g., ip address, lookup, network"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleSubmit}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-lg"
-                >
-                  {editingTool ? 'Update Tool' : 'Create Tool'}
-                </button>
-                <button
-                  onClick={closeModal}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-300 transition-all font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
+      {/* ===================== MODAL ===================== */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+          {/* HEADER */}
+          <div className="p-6 rounded-t-lg border-b-2">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                {mode == 'edit' ? (
+                  <>
+                    <Edit2 /> Edit Tool
+                  </>
+                ) : (
+                  <>
+                    <FolderCodeIcon /> Add New Tools
+                  </>
+                )}
+              </DialogTitle>
             </div>
           </div>
-        </div>
-      )}
+
+          {/* BODY */}
+          <div className="p-6 pt-0 space-y-5">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Category</label>
+
+              <Select
+                disabled={mode === 'edit'}
+                value={formData?.category ?? ''}
+                onValueChange={(value) =>
+                  setFormData((prev: any) => ({ ...(prev ?? { category: 4 }), category: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {categories
+                    .filter((cat) => cat.id !== 'all')
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* <div>
+              <label className="block text-sm font-semibold mb-2">Unique ID</label>
+              <Input
+                placeholder="e.g., ip-01"
+                value={formData?.url_id}
+                onChange={(e) =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    url_id: e.target.value,
+                  }))
+                }
+              />
+              
+            </div> */}
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Unique ID</label>
+
+              <div className="flex gap-2">
+                <Input
+                  disabled={mode === 'edit'}
+                  placeholder="e.g., ip-01"
+                  value={formData?.url_id}
+                  onChange={(e) =>
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      url_id: e.target.value,
+                    }))
+                  }
+                />
+                {mode !== 'edit' ? (
+                  <Button
+                    type="button"
+                    disabled={mode === 'edit'}
+                    variant="outline"
+                    className="cursor-pointer"
+                    onClick={() =>
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        url_id: generateRandomId(10),
+                      }))
+                    }
+                  >
+                    Generate
+                  </Button>
+                ) : (
+                  ''
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Name</label>
+              <Input
+                placeholder="e.g., IP Tools"
+                value={formData?.urlName ?? ''}
+                onChange={(e) =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    urlName: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">URL</label>
+              <Input
+                placeholder="e.g., developmenttool/ip-tools"
+                value={formData?.route || formData?.url}
+                onChange={(e) =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    route: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Description</label>
+              <Textarea
+                rows={2}
+                placeholder="Brief description of the tool..."
+                value={formData?.des}
+                onChange={(e) =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    des: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Keywords</label>
+              <Input
+                placeholder="e.g., ip address, lookup, network"
+                value={formData?.keyword}
+                onChange={(e) =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    keyword: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="pt-4 border-t-2 border-dashed space-y-4">
+              <h5 className="text-sm font-bold text-center">SEO Meta Data</h5>
+
+              {/* TITLE */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">Title</label>
+                <Input
+                  value={metadata?.title ?? ''}
+                  placeholder="e.g., developmenttool/ip-tools"
+                  onChange={(e) =>
+                    setMata((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* DESCRIPTION */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">Description</label>
+                <Textarea
+                  rows={2}
+                  value={metadata?.description ?? ''}
+                  placeholder="Brief description of the tool..."
+                  onChange={(e) =>
+                    setMata((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* KEYWORDS (TAG INPUT) */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">Keywords</label>
+
+                <div className="flex flex-wrap gap-2 p-2 border rounded-lg">
+                  <Input
+                    placeholder=" keyword ,"
+                    value={metadata?.keywords}
+                    onChange={(e) =>
+                      setMata((prev) => ({
+                        ...prev,
+                        keywords: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="flex gap-3 pt-4">
+              <Button onClick={handleSubmit} className="flex-1 cursor-pointer " disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : mode === 'edit' ? (
+                  'Update Tool'
+                ) : (
+                  'Create Tool'
+                )}
+              </Button>
+
+              <Button variant="secondary" className="flex-1" onClick={closeModal}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

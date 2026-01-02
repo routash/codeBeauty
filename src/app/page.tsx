@@ -1,3 +1,4 @@
+import { getTableData } from "@/actions/dbAction";
 import { SubNavbar } from "@/components/navbar/sub-navbar";
 import { DevelTool } from "@/components/sections/develtool";
 import { NewFun } from "@/components/sections/newfun";
@@ -5,6 +6,18 @@ import { Popular } from "@/components/sections/popular";
 import { TrendingTools } from "@/components/sections/trendingTools";
 import WelcomePage from "@/components/ui/welcome-Page";
 import type { Metadata } from "next";
+
+interface Category {
+  id: string | number;
+  name: string;
+}
+
+interface Subcategory {
+  id: string | number;
+  route: string;
+  name: string;
+  category_id: string | number;
+}
 
 export const metadata: Metadata = {
   title: "CodeBeauty - Free Online Developer Tools & Utilities",
@@ -28,10 +41,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
- 
+
+  const categoriesData = await getTableData("categories") as Category[];
+  const subcategoriesData = await getTableData("subcategories") as Subcategory[];
+
   return (
     <main className="container mx-auto">
-      <SubNavbar  />
+      <SubNavbar categoriesData={categoriesData} subcategoriesData={subcategoriesData} />
       <WelcomePage /> 
       <Popular />
       {/* <NewFun /> */}
